@@ -1,0 +1,170 @@
+%% DEMO SCRIPT TO RUN LOPEZ ET AL. 2025 distortion paper
+%% GRB March 2025
+
+%% reproduces first trajectory from figure 3 in paper
+
+clear all;
+close all;
+PLOTSTUFF=0;
+
+addpath('D:\spm'); %% spm directory
+addpath('D:\spm_distort'); %% directory with distort code from github
+rootdir='C:\Users\gbarnes\Documents\jimmyupload\'; %% where the downloaded data sits
+
+spm('defaults','eeg');
+spm_jobman('initcfg');
+
+%% set up the directory structure
+datadirectory=fullfile(rootdir,'data');
+mri_dir=fullfile(datadirectory,'mri');
+
+outputdirectory=fullfile(rootdir,'output')
+mkdir(outputdirectory);
+
+%% where the PCA template for the diffeomorphic code sits
+PCAtemplate=fullfile(spm('Dir'),'tpm','shp','Template_0.nii');
+
+%% load in information on the 8 subjects
+subjects=create_anon_subject_structure();
+
+
+%%%% FILES OF AVERAGED MEG DATA AND Time-Frequency WINDOWS
+allfname=strvcat('mpinstr_rcinstr_Tafdf.mat','mpdots_rcinstr_Tafdf.mat','mprcresp_Tafdf.mat');
+allwoi=[ 0 500; -2500 -2000;-200 300]; %% approx where evoked responses sit in these files
+foi=[5 90]; %% frequency window in Hz
+
+
+%%%%%%%%%%%%%%%%%%%%% DEFINE PARAMETERS %%%%%%%%%%%%%%%%%%%%
+subind=1; %% subject data to look at (1-8)
+fileind=1; %% file to look at (1-3)
+
+
+Npoints=17; %% points on trajectory (17 in paper)
+RandSeeds=[1:8]; %% seed which sets the trajectory (runs from 1 to 8 in paper)
+RunClean='Yes'; %% if 'No' already have all surfaces worked out
+
+%% distortion parameters
+Zmax=3; %% amount of distortion per component (as Z score)
+DistortIndices=[8:100]; %% which PCAs to distort (as in paper)
+HeadModel='Single Shell'; %% head model to use
+loc_surface='white'; %% cortical surface to use white (in paper) or pial
+
+
+%% inversion parameters for MEG Data
+woi=allwoi(fileind,:); %% time window in ms
+patch_size=0.6; % default smoothness of reconstruction
+n_temp_modes=16; %% number of temporal modes to use
+invmethods={'EBB','IID','GS'}; %% SPM inversion algorithms
+Nblocks=1; pctest=0; %% not testing cross validation
+%% for cross validation: Nblocks=10; pctest=10; for example
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PROCESSING %%%%%%%%%%%%%%%%%%
+
+allF_vals=[];
+allR2=[];
+allcrosserr=[];
+allfiles=[];
+
+
+
+for rs=1:length(RandSeeds),
+    RandSeed=RandSeeds(rs);
+
+    %%  load in average evoked dataset
+    fname = fullfile(datadirectory,'meg',subjects(subind).subj_id,deblank(allfname(fileind,:)));
+    D     = spm_eeg_load(fname);
+
+    %% Decide on the cortical surface to use for this subject (freesurfer/laMEG output)
+    subj_surf_dir=fullfile(datadirectory, 'surf',sprintf('%s-synth',...
+        subjects(subind).subj_id),'surf');
+    %%%% FROM COREG SUBJ ERF
+    fprintf('\n Using original cortex %s \n',sprintf('%s.ds.gii', loc_surface))
+    tmp_loc_surface=gifti(fullfile(subj_surf_dir, sprintf('%s.ds.gii', loc_surface)));
+    %% make new surface without the surface normals (just faces and vertices)..
+    ds_loc_surface=[]; ds_loc_surface.vertices=tmp_loc_surface.vertices;
+    ds_loc_surface.faces=tmp_loc_surface.faces; ds_loc_surface.mat=tmp_loc_surface.mat;
+    fprintf('Removing orienation info from original surface (if it exists)');
+    surf_name=sprintf('ori_norm_%s_loc.gii', loc_surface);
+    full_surf_name=fullfile(subj_surf_dir, surf_name);
+    save(gifti(ds_loc_surface),full_surf_name);
+
+    %% now make a unique file name based on datafile and surface
+    subj_outputdirectory=fullfile(outputdirectory,subjects(subind).subj_id);
+    mkdir(subj_outputdirectory);
+    [a1,b1,c1]=spm_fileparts(fname)
+    coreg_fname=fullfile(subj_outputdirectory, sprintf('loc_%s_%s_norm.mat',loc_surface,b1))
+    %% make copy of original fname and coregister this file to the chosen surface
+    coreg_fname=coreg_subject_distort(subjects(subind), deblank(allfname(fileind,:)),full_surf_name,coreg_fname,HeadModel,datadirectory);
+
+    %% now make some distorted brians (distorted brain)
+    %% for each brain and brian compute a lead-field
+    [aM,aL]=surfandlf_distort(coreg_fname,RandSeed,HeadModel,Npoints,Zmax,DistortIndices,RunClean);
+
+    %% now compute distances of brians to brain.
+    M0=gifti(aM{1}.brain); %% get original cortex
+    for i=1:Npoints,
+        M1=gifti(aM{1}.brians{i});
+        d0=M1.vertices-M0.vertices;
+        d1(i)=mean(sqrt(dot(d0',d0'))); %% mean vertex-vertex distance to M0
+    end;% for i
+
+    if PLOTSTUFF,
+        figure;
+        plot(linspace(-Zmax,Zmax,Npoints),d1)
+        ylabel('Distance to true cortex (mm)')
+        xlabel('Trajectory (in Z scores)')
+    end;
+
+    %% now quantify how much the lead fields for the distorted surfaces differ from the original
+    %% first LF is the original
+    G=load(aL{1}.gainmat{1}); %% original lead fields
+    L0=G.G;
+    diffL=[];
+    for i=1:Npoints,
+        G=load(aL{1}.gainmat{i+1});
+        L1=G.G;
+        diffL(i)=mean(dot(L1-L0,L1-L0));
+    end; % for i
+
+    if PLOTSTUFF,
+        figure;
+        plot(linspace(-Zmax,Zmax,Npoints),diffL)
+        ylabel('Distance to true LF (arb units)')
+        xlabel('Trajectory (in Z scores)')
+    end;
+
+    %% Now run an inversion for the new brians and the original brain
+
+    %% get a list of the lead-field files
+    gainmatfiles=[];
+    for f=1:numel(aL{1}.gainmat)
+        gainmatfiles=strvcat(gainmatfiles,aL{1}.gainmat{f});
+    end;
+
+    idstr='demo';%% any name
+    [a1 b1 c1]=spm_fileparts(gainmatfiles(2,:)); %% first gainmat file will be for the original cortex
+
+    % Setup spatial modes for cross validation and to ensure same modes used
+    % across the group of inversions (not biased to first or last etc)
+    spatialmodesname=fullfile(a1, sprintf('Grpmod_%s_seed%03dNb%d.mat',idstr,RandSeed,Npoints));
+
+    Dnew=spm_eeg_load(coreg_fname);
+    [F_vals,R2,VE,crosserr,allresultsfiles]=invert_group_distort(Dnew,gainmatfiles,spatialmodesname,invmethods,woi,foi,idstr,Nblocks,pctest,patch_size,n_temp_modes)
+    allF_vals(rs,:,:)=F_vals;
+    allR2(rs,:,:)=R2;
+    allcrosserr(rs,:,:)=crosserr;
+    allfiles=strvcat(allfiles,allresultsfiles);
+    close all;
+end; % for rs
+
+figure;
+xvals=strvcat('T',num2str(linspace(-Zmax,Zmax,Npoints)'));
+plot(1:Npoints+1,F_vals)
+legend(invmethods)
+set(gca,'Xtick',1:Npoints+1)
+set(gca,'Xticklabels',xvals)
+
+
+
+
