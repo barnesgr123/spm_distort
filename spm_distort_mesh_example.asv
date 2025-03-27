@@ -134,8 +134,7 @@ for rs=1:length(RandSeeds),
         xlabel('Trajectory (in Z scores)')
     end;
 
-    %%&%%%%%%%%%%%%%%%%% Now run inversion models %%%%%%%%%%%
-    %%% trajectory includes the new brians and the original brain
+    %%&%%%%%%%%%%%%%%%%% Now run inversion for the new brians and the original brain
 
     %% get a list of the lead-field files
     gainmatfiles=[];
