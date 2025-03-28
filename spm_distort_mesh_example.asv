@@ -41,7 +41,7 @@ fileind=1; %% file to look at (1-3)
 
 Npoints=17; %% points on trajectory (17 in paper)
 RandSeeds=[1:8]; %% seed which sets the trajectory (runs from 1 to 8 in paper)
-%% RandSeeds=[3] to run just one representative seed (faster)
+RandSeeds=[3]
 RunClean='Yes'; %% if 'No' already have all surfaces worked out
 
 %% distortion parameters
@@ -162,7 +162,7 @@ end; % for rs
 
 %%%%%  NOW PLOT RESULTS %%%%%%%%%%%
 figure;
-xvals=strvcat('T',num2str(linspace(-Zmax,Zmax,Npoints)'))
+xvals=strvcat('T',num2str(linspa(-Zmax,Zmax,Npoints)'))
 meanallF=squeeze(mean(allF_vals,1));
 stderrallF=squeeze(std(allF_vals,[],1))./sqrt(size(allF_vals,1)-1);
 h=errorbar(repmat([1:Npoints+1],3,1)',meanallF,stderrallF)
