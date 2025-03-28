@@ -9,7 +9,7 @@ PLOTSTUFF=0;
 
 addpath('D:\spm'); %% spm directory
 addpath('D:\spm_distort'); %% directory with distort code from github
-rootdir='C:\Users\gbarnes\Documents\jimmyupload\'; %% where the downloaded data sits
+rootdir='C:\Users\gbarnes\Documents\jimmytest\'; %% where the downloaded data sits
 
 spm('defaults','eeg');
 spm_jobman('initcfg');
