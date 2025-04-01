@@ -14,14 +14,9 @@ rootdir='C:\Users\gbarnes\Documents\jimmytest\'; %% where the downloaded data si
 spm('defaults','eeg');
 spm_jobman('initcfg');
 
-[v,r]=spm('ver'); %% Code is currently in the 2025 development version of spm (r=0.0); but not the 2025 'release' version
-%% next year (2026) it will be in both versions.
-if  (str2num(v(4:end))>=26) | (str2num(r)==0),
-    fprintf('SPM version OK\n')
-else
-    error('Need to use current (>March 2025) development version of SPM : https://github.com/spm/spm')
-end;
-
+[v,r]=spm('ver')
+if  ~((str2num(v(4:end))>=26) | (str2num(r)==0))
+    
 
 %% set up the directory structure
 datadirectory=fullfile(rootdir,'data');
