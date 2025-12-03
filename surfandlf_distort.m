@@ -46,17 +46,36 @@ Zrange=[-Zmax,Zmax];
 fprintf('\n Running surf and lf batch SHP no coreg for %s',spmfilename)
 
 matlabbatch=[];
+%matlabbatch{1}.spm.meeg.source.eeg_shp_distort.D = {'C:\Users\gbarnes\Documents\jimmytest\output\s_01\loc_white_mpinstr_rcinstr_Tafdf_norm_LFPCA_copy.mat'};
 matlabbatch{1}.spm.meeg.source.eeg_shp_distort.D = {spmfilename};
-matlabbatch{1}.spm.meeg.source.eeg_shp_distort.val = {D.val};
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.val = D.val;
 matlabbatch{1}.spm.meeg.source.eeg_shp_distort.PCAtemplate = {PCAtemplate};
-matlabbatch{1}.spm.meeg.source.eeg_shp_distort.TemplateRedo = {'No'};
-matlabbatch{1}.spm.meeg.source.eeg_shp_distort.DistortIndices = {DistortIndices};
-matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Npoints = {Npoints}; %% only 4 points on trajectory
-matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Zrange = {Zrange}; %% move from minimal to maximal distortion
-matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Zlimit = {Zlimit};
-matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Zcentre = {'sub'}; %% keep it subject specific
-matlabbatch{1}.spm.meeg.source.eeg_shp_distort.RandSeed = {RandSeed}; %% random seed defines trajectory
-matlabbatch{1}.spm.meeg.source.eeg_shp_distort.WriteClean = {WriteClean}; %% force delete of any existing seed directory
+%matlabbatch{1}.spm.meeg.source.eeg_shp_distort.TemplateRedo = 'Yes';
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.TemplateRedo = 'No';
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.DistortIndices = [8 100];
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.DistortIndices = DistortIndices;
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Npoints = Npoints;
+%matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Npoints = {Npoints}; %% only 4 points on trajectory
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Zrange = Zrange;
+%matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Zrange = {Zrange}; %% move from minimal to maximal distortion
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Zlimit = Zlimit;
+%matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Zlimit = {Zlimit};
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Zcentre = 'sub';
+%matlabbatch{1}.spm.meeg.source.eeg_shp_distort.Zcentre = {'sub'}; %% keep it subject specific
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.RandSeed = RandSeed;
+%matlabbatch{1}.spm.meeg.source.eeg_shp_distort.RandSeed = {RandSeed}; %% random seed defines trajectory
+%matlabbatch{1}.spm.meeg.source.eeg_shp_distort.WriteClean = 'Yes';
+matlabbatch{1}.spm.meeg.source.eeg_shp_distort.WriteClean = WriteClean; %% force delete of any existing seed directory
+
+
+
+
+
+
+
+
+
+
 [aM,b]=spm_jobman('run', matlabbatch);
 
 %% now compute distances of brians to brain.
