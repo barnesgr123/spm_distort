@@ -6,7 +6,7 @@
 clear all;
 close all;
 
-DISTORTANAT=1; %% distort anatomies
+DISTORTANAT=0; %% distort anatomies
 
 
 addpath('D:\spm'); %% spm directory
@@ -48,6 +48,7 @@ foi=[5 90]; %% frequency window in Hz
 patch_size=0.6; %% extent of source (arb units) on cortical surface
 n_temp_modes=16; %% number of temporal modes
 Nblocks=1; pctest=0; %% no cross validation
+swap_subj=[];
 %% for cross validation: Nblocks=10; pctest=10; for example
 
 
@@ -154,7 +155,7 @@ else
 end; % if DISTORTANAT
 
 
-INVDISTORT=1;  %% run inversions on the distorted anatomies
+INVDISTORT=0;  %% run inversions on the distorted anatomies
 
 
 %% make a copy (MAY NOT BE NECESSARY)
@@ -182,9 +183,9 @@ if INVDISTORT, %% run inversions on these surfaces
         allcrosserr(rs,:,:)=crosserr;
     end;
     save([rootdir filesep 'inv_distortwkspace.mat']); % keep useful info for this subject
-else
+else %% DONT REDO INVERSION JUST LOAD
     load([rootdir filesep 'inv_distortwkspace.mat']); % load info on distorted surfaces
-end;
+end; % INVDISTORT
 
 
 
@@ -198,7 +199,7 @@ figure; %% part 1 of figure for slides
 for im1=1:numel(invmethods),
     [shortF,shortdist]=simplify_dist_metric(allFvals(:,:,im1),[0 d1]);
     hold on;
-    plotSeed=2; %% shows local maximum
+    plotSeed=8; %% shows local maximum
     h01=plot(shortdist,squeeze(shortF(plotSeed,:)),colstr{im1});
     [dum,ind]=max(squeeze(shortF(plotSeed,:)));
     h1=plot(shortdist(ind),shortF(plotSeed,ind),mspairs(im1,:))
@@ -210,4 +211,45 @@ end;
 xlabel('Distortion (mm)')
 ylabel('Free Energy')
 set(gca,'Fontsize',18);
+
+
+Nseed=length(RandSeeds)
+
+figure; hold on;
+for im1=1:numel(invmethods),
+    plotSeed=[1:Nseed]; %% show all seeds
+    [shortF,shortdist]=simplify_dist_metric(allFvals(:,:,im1),[0 d1]);
+    [dum,ind]=max(squeeze(shortF(plotSeed,:))');
+    for f=1:length(ind)
+
+        h1=plot(shortdist(ind(f)),shortF(plotSeed(f),ind(f))',mspairs(im1,:))
+
+        set(h1,'LineWidth',Lw);
+        set(h1,'MarkerSize',Ms);
+    end;
+end;
+
+hold on;
+msumdist=zeros(numel(invmethods),1);
+for im1=1:numel(invmethods),
+
+    [shortF,shortdist]=simplify_dist_metric(allFvals(:,:,im1),[0 d1]);
+    [dum,ind]=max(squeeze(shortF(plotSeed,:))');
+    msumdist(im1)=0;
+    for f=1:length(ind),
+        msumdist(im1)=msumdist(im1)+shortdist(ind(f));
+    end;
+    msumdist(im1)=msumdist(im1)/length(ind);
+    ax=axis;
+    h=plot(msumdist(im1),ax(3),mspairs(im1,:))
+    set(h,'Markersize',Ms*2)
+    set(h,'LineWidth',Lw)
+end;
+
+xlabel('Distortion (mm)')
+ylabel('Free Energy')
+set(gca,'Fontsize',18);
+axis('tight')
+
+
 
