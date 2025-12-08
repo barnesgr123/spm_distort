@@ -171,6 +171,7 @@ idstr=sprintf('w%d-%d_f%d-%d_Nb%d_pc%d_pt%d_Nt%d%s',round(allwoi(fileind,1)),rou
 fprintf('\n id is %s\n',idstr)
 
 if INVDISTORT, %% run inversions on these surfaces
+    everyresults=[];
     for rs=1:length(RandSeeds),
         RandSeed=RandSeeds(rs);
         gmfiles=strvcat(gainmatfiles{rs,1:Npoints+1});
@@ -181,6 +182,7 @@ if INVDISTORT, %% run inversions on these surfaces
         allR2(rs,:,:)=R2;
         allVE(rs,:,:)=VE;
         allcrosserr(rs,:,:)=crosserr;
+        everyresults=strvcat(everyresults,allresultsfiles);
     end;
     save([rootdir filesep 'inv_distortwkspace.mat']); % keep useful info for this subject
 else %% DONT REDO INVERSION JUST LOAD
@@ -251,5 +253,67 @@ ylabel('Free Energy')
 set(gca,'Fontsize',18);
 axis('tight')
 
+
+
+rs=8;
+RandSeed=RandSeeds(rs);
+invmethod_example={'EBB'}
+gmfiles=strvcat(gainmatfiles{rs,1:Npoints+1});
+spatialmodesname=fullfile(a1, sprintf('Grpmod_%s_seed%03dNb%d.mat',idstr,RandSeed,Npoints));
+[F_vals,R2,VE,crosserr,allresultsfiles,Mall]=invert_group_matched(Dnew,gmfiles,spatialmodesname,invmethod_example,allwoi(fileind,:),foi,idstr,Nblocks,pctest,patch_size,n_temp_modes)
+allFvals(rs,:,:)=F_vals;
+allR2(rs,:,:)=R2;
+allVE(rs,:,:)=VE;
+allcrosserr(rs,:,:)=crosserr;
+everyresults=strvcat(everyresults,allresultsfiles);
+
+
+%% PLOT SOME REAL DATA AND INVERSIONS
+figure;
+megind=setdiff(Dnew.indchantype('MEG'),Dnew.badchannels)
+data=squeeze(D(megind,:,1));
+plot(D.time,data)
+set(gca,'Fontsize',18);
+xlabel('Time (s)')
+ylabel('Field (fT)')
+
+ind0=1;
+indmaxdist=Npoints+1;
+J0=squeeze(Mall(ind0,1,:,:))*data;
+Jmax=squeeze(Mall(indmaxdist,1,:,:))*data;
+
+rmsJ0=std(J0');
+rmsJmax=std(Jmax');
+rmsJtot=rmsJ0+rmsJmax;
+[dum,maxsurfind]=max(rmsJtot);
+
+M0=Dnew.inv{1}.mesh.tess_mni;
+M0.vertices=M0.vert;
+M0.faces=M0.face;
+M0i=spm_mesh_inflate(gifti(M0));
+figure;
+h=trisurf(M0i.faces,M0i.vertices(:,1),M0i.vertices(:,2),M0i.vertices(:,3),rmsJ0)
+set(h,'EdgeColor','none');
+F_valsrel=F_vals-min(F_vals);
+colorbar;
+title(sprintf('F rel=%3.2f',F_valsrel(ind0)))
+xlabel('x'); ylabel('y');zlabel('z');
+set(gca,'Fontsize',18)
+caxis([0 0.065])
+figure;
+h=trisurf(M0i.faces,M0i.vertices(:,1),M0i.vertices(:,2),M0i.vertices(:,3),rmsJmax)
+set(h,'EdgeColor','none')
+title(sprintf('F rel=%3.2f',F_valsrel(indmaxdist)))
+xlabel('x'); ylabel('y');zlabel('z');
+set(gca,'Fontsize',18)
+caxis([0 0.065])
+colorbar;
+
+figure;
+h=plot(D.time,J0(maxsurfind,:),D.time,Jmax(maxsurfind,:))
+set(h,'Linewidth',3)
+legend('True','Distorted')
+title(sprintf('At MNI %3.2f %3.2f %3.2f',M0.vertices(maxsurfind,1),M0.vertices(maxsurfind,2),M0.vertices(maxsurfind,3)));
+set(gca,'FontSize',18)
 
 
