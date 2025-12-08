@@ -6,7 +6,7 @@
 clear all;
 close all;
 
-DISTORTANAT=0; %% distort anatomies
+DISTORTANAT=1; %% distort anatomies (only need to do this once)
 
 
 addpath('D:\spm'); %% spm directory
@@ -155,7 +155,7 @@ else
 end; % if DISTORTANAT
 
 
-INVDISTORT=0;  %% run inversions on the distorted anatomies
+INVDISTORT=1;  %% run inversions on the distorted anatomies (only needs to be set first time it is run)
 
 
 %% make a copy (MAY NOT BE NECESSARY)
@@ -255,18 +255,12 @@ axis('tight')
 
 
 
-rs=8;
+rs=8; %% seed to plot
 RandSeed=RandSeeds(rs);
 invmethod_example={'EBB'}
 gmfiles=strvcat(gainmatfiles{rs,1:Npoints+1});
 spatialmodesname=fullfile(a1, sprintf('Grpmod_%s_seed%03dNb%d.mat',idstr,RandSeed,Npoints));
-[F_vals,R2,VE,crosserr,allresultsfiles,Mall]=invert_group_matched(Dnew,gmfiles,spatialmodesname,invmethod_example,allwoi(fileind,:),foi,idstr,Nblocks,pctest,patch_size,n_temp_modes)
-allFvals(rs,:,:)=F_vals;
-allR2(rs,:,:)=R2;
-allVE(rs,:,:)=VE;
-allcrosserr(rs,:,:)=crosserr;
-everyresults=strvcat(everyresults,allresultsfiles);
-
+[F_vals,R2,VE,crosserr,allresultsfiles,Mall]=invert_group_matched(Dnew,gmfiles,spatialmodesname,invmethod_example,allwoi(fileind,:),foi,idstr,Nblocks,pctest,patch_size,n_temp_modes);
 
 %% PLOT SOME REAL DATA AND INVERSIONS
 figure;

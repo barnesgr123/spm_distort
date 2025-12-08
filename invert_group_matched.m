@@ -1,8 +1,10 @@
-function [F_vals,R2,VE,crosserr,allresultsfiles]=invert_group_distort(Dnew,gainmatfiles,spatialmodesname,invmethods,woi,foi,idstr,Nblocks,pctest,patch_size,n_temp_modes)
-%%function [F_vals,R2,VE,crosserr,allresultsfiles]=invert_group_distort(Dnew,gainmatfiles,spatialmodesname,invmethods,woi,foi,idstr,Nblocks,pctest,patch_size,n_temp_modes)
-
+function [F_vals,R2,VE,crosserr,allresultsfiles,Mout]=invert_group_matched(Dnew,gainmatfiles,spatialmodesname,invmethods,woi,foi,idstr,Nblocks,pctest,patch_size,n_temp_modes)
 % Setup spatial modes for cross validation and to ensure same modes used
 % across the group of inversions (not biased to first or last etc)
+
+if nargout>5,
+    Mout=[];
+end;
 
 val=Dnew.val;
 [spatialmodesname,Nmodes,pctest]=spm_eeg_inv_prep_modes_xval(Dnew.fullfile, [], spatialmodesname, Nblocks, pctest,gainmatfiles);
@@ -64,7 +66,9 @@ for f=1:Ngainmat,
         R2(f,i1)=Drecon.inv{1}.inverse.R2;
         VE(f,i1)=Drecon.inv{1}.inverse.VE;
         crosserr(f,i1)=mean(Drecon.inv{1}.inverse.crosserr(:));
-    
+        if nargout>5,
+            Mout(f,i1,:,:)=full(Drecon.inv{1}.inverse.M);
+        end;
     end; % for invmethods
     
     fprintf('\n Done %d of %d',f,Ngainmat);
